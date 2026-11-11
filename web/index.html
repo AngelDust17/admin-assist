@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#f7f5ef">
+  <meta name="description" content="Рабочий журнал администратора информационной системы: инциденты, инструкции и объяснимые рекомендации.">
+  <title>Admin Assist — инженерный журнал</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/style.css">
+  <script src="/investigation.js" defer></script><script src="/app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Перейти к содержимому</a>
+  <div class="shell">
+    <header class="masthead">
+      <a class="brand" href="#overview" aria-label="Admin Assist — обращения">Admin Assist<span>Помощник администратора</span></a>
+      <div class="edition"><span class="eyebrow">Рабочие записи</span><time id="edition-date"></time><span class="edition-mode">Локальный сеанс</span></div>
+    </header>
+    <nav class="main-nav" aria-label="Основная навигация">
+      <a href="#overview" data-page="overview">Обращения<span id="nav-count" class="nav-count">0</span></a>
+      <a href="#knowledge" data-page="knowledge">База знаний</a>
+      <a href="#analytics" data-page="analytics">Статистика</a>
+      <span class="nav-caption" id="breadcrumb">Обращения</span>
+    </nav>
+    <main id="main" tabindex="-1"><div class="initial-loading" role="status">Открываем журнал…</div></main>
+    <footer><span>Admin Assist <span class="footer-separator">/</span> Инженерный журнал</span><span id="storage-note">Данные хранятся на этом компьютере.</span></footer>
+  </div>
+  <dialog id="create-dialog" class="form-dialog" aria-labelledby="create-title">
+    <form id="incident-form">
+      <div class="dialog-head"><div><h2 id="create-title">Новое обращение</h2></div><button type="button" class="icon-button" data-close="create-dialog" aria-label="Закрыть">×</button></div>
+      <p class="form-intro">Расскажите, что случилось. Приоритет и подходящие инструкции подберём по вашему описанию.</p>
+      <label>Название<input name="title" required minlength="5" maxlength="160" placeholder="Например, не удаётся войти в систему"></label>
+      <label>Подробности<textarea name="description" required minlength="10" maxlength="5000" rows="3" placeholder="Когда началась проблема? Какую ошибку видите? Не менее 10 символов."></textarea></label>
+      <label>Где возникла проблема?<input name="service" required minlength="2" maxlength="100" placeholder="Например, почта, портал или CRM" list="services"></label><datalist id="services"></datalist>
+      <div class="form-grid"><label>Кого затронула проблема?<select name="impact"><option value="single">Одного пользователя</option><option value="team">Нескольких сотрудников</option><option value="all">Всех сотрудников</option></select></label><label>Насколько мешает работе?<select name="urgency"><option value="medium">Работать можно, но неудобно</option><option value="low">Сейчас можно отложить</option><option value="high">Работать невозможно</option></select></label></div>
+      <details class="analysis-preview"><summary>Посмотреть анализ перед созданием</summary><div id="analysis-preview" aria-live="polite"><p>Заполните поля, затем нажмите «Проверить».</p></div><button type="button" id="preview-analysis" class="button secondary">Проверить</button></details>
+      <p id="create-error" class="form-error" role="alert"></p>
+      <div class="form-actions"><button type="button" class="button secondary" data-close="create-dialog">Отмена</button><button type="submit" class="button primary">Создать обращение</button></div>
+    </form>
+  </dialog>
+  <dialog id="article-dialog" class="form-dialog" aria-labelledby="article-title">
+    <form id="article-form"><div class="dialog-head"><div><span class="eyebrow">База знаний / новая запись</span><h2 id="article-title">Инструкция</h2></div><button type="button" class="icon-button" data-close="article-dialog" aria-label="Закрыть">×</button></div>
+      <label>Название<input name="title" required minlength="5" maxlength="160" placeholder="Как устранить проблему"></label>
+      <label>Краткое описание<textarea name="summary" required minlength="10" maxlength="500" rows="2"></textarea></label>
+      <label>Категория<select name="category" id="article-category"></select></label>
+      <label>Ключевые слова<span class="field-note">Через запятую, до 20 слов или фраз</span><input name="keywords" required maxlength="1000" placeholder="ошибка, подключение, сервис"></label>
+      <label>Шаги решения<span class="field-note">Каждый шаг с новой строки, до 12 шагов</span><textarea name="steps" required rows="5" maxlength="6000" placeholder="Уточнить текст ошибки&#10;Проверить состояние сервиса&#10;Зафиксировать результат"></textarea></label>
+      <p id="article-error" class="form-error" role="alert"></p><div class="form-actions"><button type="button" class="button secondary" data-close="article-dialog">Отмена</button><button class="button primary" type="submit">Сохранить инструкцию</button></div>
+    </form>
+  </dialog>
+  <div id="toast" role="status" class="toast" hidden></div>
+</body>
+</html>
