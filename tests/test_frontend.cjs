@@ -1,0 +1,68 @@
+// Frontend smoke checks without a browser or third-party dependencies.
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const path=require('node:path');
+const vm=require('node:vm');
+const elements=new Map();
+function element(){return {innerHTML:'',textContent:'',value:'',open:false,hidden:true,isConnected:true,dataset:{},classList:{toggle(){}},setAttribute(){},removeAttribute(){},addEventListener(){},showModal(){this.open=true;},close(){this.open=false;},querySelector(){return element();},querySelectorAll(){return [];}};}
+const document={querySelector(selector){if(!elements.has(selector))elements.set(selector,element());return elements.get(selector);},querySelectorAll(){return [];},addEventListener(){}};
+const analysis={category_label:'Доступ и учётные записи',classification_reason:'Найден признак: пароль.',confidence:'Совпадение по правилам',priority_reason:'Работа затруднена.',recommendations:[]};
+const first={id:1,title:'Не удаётся войти',description:'Пользователь забыл пароль',service:'Портал',impact:'single',urgency:'medium',status:'new',priority:'medium',category:'access',analysis,is_demo:0,resolution:'',created_at:'2026-11-10T09:00:00+00:00',updated_at:'2026-11-10T09:00:00+00:00'};
+const second={...first,id:2,title:'Приложение недоступно',priority:'critical',service:'CRM',impact:'all',urgency:'high'};
+const fixture={incidents:[first,second],articles:[{id:1,title:'Проверка доступа',category:'access',summary:'Проверить состояние записи',keywords:['пароль'],steps:['Проверить состояние записи']}],statuses:{new:'Новое',in_progress:'В работе',resolved:'Решено'},priorities:{critical:'Критический',high:'Высокий',medium:'Средний',low:'Низкий'},impacts:{single:'Один пользователь',all:'Вся организация'},urgencies:{medium:'Работа затруднена',high:'Работа остановлена'},categories:{access:'Доступ и учётные записи'}};
+const result=id=>({incident:{...(id===1?first:second)},events:[]});
+const fetched=[];
+const context=vm.createContext({document,location:{hash:'#overview'},window:{addEventListener(){},scrollTo(){}},Intl,Date,Set,console,setTimeout,clearTimeout,fixture,fetch:async url=>{fetched.push(url);return {ok:true,json:async()=>url==='/api/bootstrap'?fixture:result(Number(url.split('/').at(-1)))};}});
+const run=code=>vm.runInContext(code,context);
+async function main(){
+  vm.runInContext(fs.readFileSync(path.join(__dirname,'../web/investigation.js'),'utf8'),context);
+  vm.runInContext(fs.readFileSync(path.join(__dirname,'../web/app.js'),'utf8'),context);
+  await new Promise(resolve=>setTimeout(resolve,0));
+  assert.match(elements.get('#main').innerHTML,/cases-list/);
+  assert.doesNotMatch(elements.get('#main').innerHTML,/data-incident-card/);
+  assert.deepEqual(fetched,['/api/bootstrap'],'list loads without opening an unrelated incident');
+  assert.equal(elements.get('.edition-mode').textContent,'Локальный сеанс');
+  await run('fixture.environment={public:true};refresh()');
+  assert.equal(elements.get('.edition-mode').textContent,'Учебный онлайн-стенд');
+  assert.match(elements.get('#storage-note').textContent,/Общая учебная база/);
+  await run('delete fixture.environment;refresh()');
+  assert.equal(run('filteredIncidents()[0].id'),2,'urgent records appear first');
+  run("state.scope='resolved'");assert.equal(run('filteredIncidents().length'),0);
+  run("state.scope='open'");
+  run("state.filters.search='CRM'");
+  assert.equal(run('filteredIncidents().length'),1);
+  run("state.filters.priority='medium'");
+  assert.equal(run('filteredIncidents().length'),0);
+  run("state.filters={search:'',status:'',priority:''}");
+  assert.match(run("incidentRows([{...state.data.incidents[0],title:'<img src=x onerror=alert(1)>'}])"),/&lt;img/);
+  assert.doesNotMatch(run("incidentRows([{...state.data.incidents[0],title:'<img src=x onerror=alert(1)>'}])"),/<img/);
+  run("location.hash='#incident/2';render()");
+  await new Promise(resolve=>setTimeout(resolve,0));
+  assert.equal(run('state.page'),'detail');
+  assert.match(elements.get('#journal-detail').innerHTML,/Приложение недоступно/);
+  context.investigationFixture={started:true,read_only:false,scenario:'access',scenario_title:'Не удаётся войти',revision:3,scenarios:[],answered_count:1,hypotheses:[{id:'locked',title:'Блокировка записи',status:'supported',status_label:'Подтверждается',evidence:[{question:'Запись заблокирована?',answer_label:'Да'}],contradictions:[],remaining:[],advice:['Проверить причину блокировки']}],answers:[{question_id:'account_blocked',question:'Запись заблокирована?',answer:'yes',answer_label:'Да',note:'<img src=x onerror=alert(1)>'}],next_question:null};
+  const investigationMarkup=run('investigationPanel(investigationFixture,fixture.incidents[0])');
+  assert.match(investigationMarkup,/Блокировка записи/);
+  assert.match(investigationMarkup,/&lt;img/);
+  assert.doesNotMatch(investigationMarkup,/<img/);
+  assert.doesNotMatch(run('investigationPanel({...investigationFixture,read_only:true},fixture.incidents[0])'),/data-investigation-form/);
+  assert.doesNotMatch(elements.get('#journal-detail').innerHTML,/<details[^>]*\bopen\b/,'technical details start collapsed');
+  run("location.hash='#knowledge';render()");assert.match(elements.get('#main').innerHTML,/Проверка доступа/);
+  run("state.knowledge.search='Несуществующая инструкция'");assert.match(run('articleEntries()'),/не найдено/);
+  run("location.hash='#analytics';render()");assert.match(elements.get('#main').innerHTML,/Матрица приоритетов/);
+  run("state.data={...fixture,incidents:[]};location.hash='#overview';state.selectedId=null;render()");
+  assert.match(elements.get('#main').innerHTML,/Всё обработано/);
+  run("location.hash='#analytics';render()");assert.doesNotMatch(elements.get('#main').innerHTML,/NaN|Infinity/);
+  run("state.data=fixture;location.hash='#incidents';render()");assert.match(elements.get('#main').innerHTML,/INC-0001/);
+  run("location.hash='#constructor';render()");assert.equal(run('state.page'),'overview');
+  // A slower response for an older selection must never replace the latest one.
+  const resolvers={};
+  context.fetch=url=>new Promise(resolve=>{resolvers[Number(url.split('/').at(-1))]=()=>resolve({ok:true,json:async()=>result(Number(url.split('/').at(-1)))});});
+  run("state.page='detail'");
+  const oldRequest=run('loadJournal(1)'),newRequest=run('loadJournal(2)');
+  resolvers[2]();await newRequest;resolvers[1]();await oldRequest;
+  assert.equal(run('state.journalDetail.incident.id'),2);
+  assert.match(elements.get('#journal-detail').innerHTML,/Приложение недоступно/);
+  console.log('PASS: focused landing page, status groups, priority order, search, escaping, direct detail links, collapsed technical sections, all screens, empty data and out-of-order responses.');
+}
+main().catch(err=>{console.error(err);process.exitCode=1;});
