@@ -2,6 +2,10 @@
 
 GitHub хранит исходный код, PythonAnywhere запускает приложение и хранит общую базу. Отдельную браузерную версию делать не нужно. Локальный запуск через `start.bat` продолжает работать.
 
+Опубликованный сайт: https://angeldust17.pythonanywhere.com/
+
+Исходный код: https://github.com/AngelDust17/admin-assist
+
 ## 1. Аккаунты
 
 Нужны аккаунты GitHub и PythonAnywhere. На [странице тарифов PythonAnywhere](https://www.pythonanywhere.com/pricing/) выберите **Create a Beginner account** — бесплатный план. Пароли и коды подтверждения вводите только на сайтах сервисов.
@@ -21,7 +25,7 @@ GitHub хранит исходный код, PythonAnywhere запускает �
 В **Consoles → Bash** выполните, подставив свой логин GitHub:
 
 ```bash
-git clone https://github.com/YOUR_GITHUB_LOGIN/admin-assist.git ~/admin-assist
+git clone https://github.com/AngelDust17/admin-assist.git ~/admin-assist
 ```
 
 Альтернатива без Git: в папке локального приложения выполните `python tools/package_release.py`. Архив `admin-assist-deploy.zip` появится в родительской папке «курсовая». Загрузите его в домашнюю папку через **Files** на PythonAnywhere, затем выполните в **Bash**:
